@@ -31,7 +31,7 @@ await Promise.all([
 
 const metadata = {
   name: "墨隐 Moyin",
-  version: "0.2.0",
+  version: "0.3.0",
   builtAt: new Date().toISOString(),
   engine: "MoonBit JavaScript backend",
 };

@@ -41,12 +41,12 @@
         <div class="eyebrow">MOONBIT-POWERED PRIVACY TOOL</div>
         <h1>发送之前，先让敏感信息<br /><span>消失得恰到好处。</span></h1>
         <p>
-          检测日志、配置和表格中的手机号、身份证、邮箱、银行卡、IP 与访问密钥。
+          检测日志、配置和表格中的手机号、身份证、邮箱、银行卡、车牌、网络地址与访问凭据。
           所有计算都在你的设备上完成。
         </p>
         <div class="hero-chips" aria-label="支持类型">
           <span>手机号</span><span>身份证</span><span>邮箱</span><span>银行卡</span
-          ><span>访问密钥</span><span>IPv4</span>
+          ><span>JWT / 私钥</span><span>车牌 / 网络地址</span>
         </div>
       </section>
 
@@ -106,6 +106,48 @@
           </div>
         </div>
 
+        <details class="advanced-settings" id="advancedSettings">
+          <summary>
+            <span>
+              <strong>高级检测策略</strong>
+              <small>选择规则、自定义敏感词，并为一致化替换设置项目盐值</small>
+            </span>
+            <span class="summary-action">展开设置</span>
+          </summary>
+          <div class="settings-body">
+            <div class="setting-block">
+              <div class="setting-heading">
+                <div>
+                  <strong>启用的检测规则</strong>
+                  <small>取消勾选可忽略不适合当前场景的类型</small>
+                </div>
+                <label class="switch-row">
+                  <input id="includeLowRisk" type="checkbox" checked />
+                  <span>包含低风险</span>
+                </label>
+              </div>
+              <div class="rules-grid" id="rulesGrid"></div>
+            </div>
+            <div class="settings-columns">
+              <label class="field-label">
+                <span>自定义敏感词 <small>每行一个，精确匹配</small></span>
+                <textarea id="customTerms" rows="4" placeholder="内部项目代号&#10;未公开客户名称"></textarea>
+              </label>
+              <label class="field-label">
+                <span>匿名化盐值 <small>仅一致化替换生效</small></span>
+                <input
+                  id="tokenSalt"
+                  type="password"
+                  disabled
+                  autocomplete="off"
+                  placeholder="例如：team-2026-private"
+                />
+                <small class="field-hint">同一盐值保证同一原文得到同一匿名标识；报告不会保存盐值。</small>
+              </label>
+            </div>
+          </div>
+        </details>
+
         <button class="button primary" id="scanButton" type="button">
           <span>开始本地检测</span>
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -148,6 +190,7 @@
         </div>
 
         <div class="result-panel">
+          <div class="result-meta" id="resultMeta">0 类命中 · 1 个扫描块</div>
           <div class="tabs" role="tablist">
             <button class="tab is-active" data-tab="findings" role="tab">检测明细</button>
             <button class="tab" data-tab="masked" role="tab">脱敏结果</button>

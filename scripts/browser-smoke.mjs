@@ -118,6 +118,8 @@ try {
     expression: `(async () => {
       document.querySelector("#sampleButton").click();
       document.querySelector('[data-mode="tokenize"]').click();
+      document.querySelector("#tokenSalt").value = "browser-smoke";
+      document.querySelector("#customTerms").value = "外部供应商";
       document.querySelector("#scanButton").click();
       await new Promise((resolve) => setTimeout(resolve, 250));
       return {
@@ -128,6 +130,10 @@ try {
         version: document.querySelector("#engineVersion").textContent,
         findings: document.querySelectorAll(".finding-card").length,
         tokenized: document.querySelector("#maskedOutput").textContent.includes("[PHONE_"),
+        customToken: document.querySelector("#maskedOutput").textContent.includes("[CUSTOM_"),
+        ruleCount: document.querySelectorAll(".rule-option").length,
+        saltEnabled: !document.querySelector("#tokenSalt").disabled,
+        resultMeta: document.querySelector("#resultMeta").textContent,
         verdict: document.querySelector("#verdictLabel").textContent
       };
     })()`,
@@ -135,12 +141,16 @@ try {
   const value = evaluation.result.value;
   const passed =
     value.title.includes("墨隐") &&
-    value.total === "6" &&
+    value.total === "7" &&
     value.high === "4" &&
     value.visible &&
-    value.version === "0.2.0" &&
-    value.findings === 6 &&
+    value.version === "0.3.0" &&
+    value.findings === 7 &&
     value.tokenized &&
+    value.customToken &&
+    value.ruleCount === 13 &&
+    value.saltEnabled &&
+    value.resultMeta.includes("7 类命中") &&
     value.verdict === "建议阻止外发";
 
   if (!passed) {

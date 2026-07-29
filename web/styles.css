@@ -410,6 +410,188 @@ footer {
   color: #53607f;
 }
 
+.advanced-settings {
+  margin-top: 16px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(5, 9, 21, 0.38);
+}
+
+.advanced-settings summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 17px 19px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.advanced-settings summary::-webkit-details-marker {
+  display: none;
+}
+
+.advanced-settings summary strong,
+.advanced-settings summary small {
+  display: block;
+}
+
+.advanced-settings summary strong {
+  font-size: 14px;
+}
+
+.advanced-settings summary small {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.summary-action {
+  color: var(--accent);
+  font-size: 11px;
+}
+
+.advanced-settings[open] .summary-action {
+  font-size: 0;
+}
+
+.advanced-settings[open] .summary-action::after {
+  font-size: 11px;
+  content: "收起设置";
+}
+
+.settings-body {
+  padding: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.setting-heading,
+.switch-row {
+  display: flex;
+  align-items: center;
+}
+
+.setting-heading {
+  justify-content: space-between;
+  margin-bottom: 13px;
+}
+
+.setting-heading strong,
+.setting-heading small {
+  display: block;
+}
+
+.setting-heading strong {
+  font-size: 13px;
+}
+
+.setting-heading small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.switch-row {
+  gap: 7px;
+  color: #c8d0e7;
+  font-size: 12px;
+}
+
+.switch-row input,
+.rule-option input {
+  accent-color: var(--accent-strong);
+}
+
+.rules-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.rule-option {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.018);
+  cursor: pointer;
+}
+
+.rule-option span,
+.rule-option strong,
+.rule-option small {
+  display: block;
+  min-width: 0;
+}
+
+.rule-option strong {
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rule-option small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.settings-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 13px;
+  margin-top: 17px;
+}
+
+.field-label > span,
+.field-label > span small {
+  display: block;
+}
+
+.field-label > span {
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.field-label > span small,
+.field-hint {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.field-label textarea,
+.field-label input {
+  width: 100%;
+  resize: vertical;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  outline: 0;
+  background: #080d1d;
+  color: #dfe5f6;
+  font-size: 12px;
+}
+
+.field-label input:focus,
+.field-label textarea:focus {
+  border-color: rgba(157, 255, 202, 0.42);
+}
+
+.field-label input:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.field-hint {
+  display: block;
+  line-height: 1.55;
+}
+
 .button.primary {
   display: flex;
   width: 100%;
@@ -574,6 +756,13 @@ footer {
 
 .result-panel {
   overflow: hidden;
+}
+
+.result-meta {
+  padding: 12px 28px;
+  border-bottom: 1px solid var(--line);
+  color: #7683a5;
+  font: 10px "Cascadia Code", Consolas, monospace;
 }
 
 .tabs {
@@ -882,6 +1071,14 @@ footer {
   }
 
   .mode-picker {
+    grid-template-columns: 1fr;
+  }
+
+  .rules-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .settings-columns {
     grid-template-columns: 1fr;
   }
 

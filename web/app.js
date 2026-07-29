@@ -1,4 +1,8 @@
-import { engine_version, scan_json, scan_tokenized_json } from "./engine.js";
+import {
+  available_rules_json,
+  engine_version,
+  scan_configured_json,
+} from "./engine.js";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const sampleText = `生产日志导出预览
@@ -39,6 +43,12 @@ const elements = {
   downloadMaskButton: document.querySelector("#downloadMaskButton"),
   downloadReportButton: document.querySelector("#downloadReportButton"),
   toast: document.querySelector("#toast"),
+  rulesGrid: document.querySelector("#rulesGrid"),
+  customTerms: document.querySelector("#customTerms"),
+  tokenSalt: document.querySelector("#tokenSalt"),
+  includeLowRisk: document.querySelector("#includeLowRisk"),
+  advancedSettings: document.querySelector("#advancedSettings"),
+  resultMeta: document.querySelector("#resultMeta"),
 };
 
 let currentReport = null;
@@ -67,6 +77,31 @@ function escapeHtml(value) {
 
 function riskLabel(risk) {
   return { high: "高风险", medium: "中风险", low: "低风险" }[risk] ?? risk;
+}
+
+function renderRuleOptions() {
+  const rules = JSON.parse(available_rules_json());
+  for (const rule of rules) {
+    const label = document.createElement("label");
+    label.className = "rule-option";
+    label.title = rule.description;
+    label.innerHTML = `
+      <input type="checkbox" value="${escapeHtml(rule.category)}" ${
+        rule.enabled_by_default ? "checked" : ""
+      } />
+      <span>
+        <strong>${escapeHtml(rule.label)}</strong>
+        <small>${riskLabel(rule.risk)}</small>
+      </span>
+    `;
+    elements.rulesGrid.append(label);
+  }
+}
+
+function selectedCategories() {
+  return [...elements.rulesGrid.querySelectorAll('input[type="checkbox"]:checked')]
+    .map((input) => input.value)
+    .join(",");
 }
 
 function renderFindings(findings) {
@@ -105,6 +140,9 @@ function renderReport(report, elapsed) {
   elements.maskedOutput.textContent = report.masked_text;
   elements.engineVersion.textContent = report.version;
   elements.scanTime.textContent = `${elapsed.toFixed(1)} ms · 本地完成`;
+  elements.resultMeta.textContent = `${report.categories.length} 类命中 · ${report.chunk_count} 个扫描块${
+    report.truncated ? " · 已达到结果上限" : ""
+  }`;
   elements.verdictBanner.className = `verdict-banner ${report.verdict.level}`;
   elements.verdictIcon.textContent =
     report.verdict.level === "safe" ? "✓" : report.verdict.level === "review" ? "?" : "!";
@@ -132,8 +170,18 @@ function runScan() {
   requestAnimationFrame(() => {
     const start = performance.now();
     try {
-      const scanFunction = replacementMode === "tokenize" ? scan_tokenized_json : scan_json;
-      const report = JSON.parse(scanFunction(text));
+      const report = JSON.parse(
+        scan_configured_json(
+          text,
+          replacementMode,
+          elements.tokenSalt.value,
+          selectedCategories(),
+          elements.customTerms.value,
+          elements.includeLowRisk.checked,
+          10000,
+          65536,
+        ),
+      );
       renderReport(report, performance.now() - start);
     } catch (error) {
       console.error(error);
@@ -193,6 +241,7 @@ elements.fileInput.addEventListener("change", (event) => loadFile(event.target.f
 document.querySelectorAll(".mode-option").forEach((option) => {
   option.addEventListener("click", () => {
     replacementMode = option.dataset.mode;
+    elements.tokenSalt.disabled = replacementMode !== "tokenize";
     document
       .querySelectorAll(".mode-option")
       .forEach((item) => item.classList.toggle("is-active", item === option));
@@ -202,6 +251,12 @@ document.querySelectorAll(".mode-option").forEach((option) => {
       showToast("替换方式已切换，请重新检测");
     }
   });
+});
+
+elements.advancedSettings.addEventListener("toggle", () => {
+  if (elements.advancedSettings.open) {
+    elements.advancedSettings.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
 });
 
 for (const eventName of ["dragenter", "dragover"]) {
@@ -247,5 +302,6 @@ elements.downloadReportButton.addEventListener("click", () => {
   );
 });
 
+renderRuleOptions();
 elements.engineVersion.textContent = engine_version();
 updateInputMeta();
