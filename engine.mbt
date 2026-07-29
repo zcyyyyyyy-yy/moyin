@@ -38,7 +38,10 @@ pub struct ScanReport {
   input_length : Int
   findings : Array[Finding]
   summary : Summary
+  categories : Array[CategorySummary]
   verdict : Verdict
+  chunk_count : Int
+  truncated : Bool
   masked_text : String
 } derive(ToJson, Debug, Eq)
 
@@ -115,22 +118,30 @@ fn candidate(
 }
 
 ///|
-fn stable_code(value : String) -> String {
+fn stable_code(value : String, salt : String) -> String {
   let mut hash = 17
-  for index = 0; index < value.length(); index = index + 1 {
-    hash = (hash * 131 + code_at(value, index)) % 1000000
+  for index = 0; index < salt.length(); index = index + 1 {
+    hash = (hash * 131 + code_at(salt, index)) % 10000000
   }
-  hash.to_string().pad_start(6, '0')
+  hash = (hash * 131 + 124) % 10000000
+  for index = 0; index < value.length(); index = index + 1 {
+    hash = (hash * 131 + code_at(value, index)) % 10000000
+  }
+  hash.to_string().pad_start(7, '0')
 }
 
 ///|
 fn replacement_for(
   item : Candidate,
   original : String,
-  mode : String,
+  config : ScanConfig,
 ) -> String {
-  if mode == "tokenize" {
-    "[" + item.category.to_upper() + "_" + stable_code(original) + "]"
+  if config.mode == "tokenize" {
+    "[" +
+    item.category.to_upper() +
+    "_" +
+    stable_code(original, config.salt) +
+    "]"
   } else {
     item.masked
   }
@@ -484,7 +495,10 @@ fn add_secrets(text : String, out : Array[Candidate]) -> Unit {
 }
 
 ///|
-fn accepted_candidates(candidates : Array[Candidate]) -> Array[Candidate] {
+fn accepted_candidates(
+  candidates : Array[Candidate],
+  limit : Int,
+) -> (Array[Candidate], Bool) {
   candidates.sort_by(fn(a, b) {
     if a.start != b.start {
       a.start - b.start
@@ -496,13 +510,18 @@ fn accepted_candidates(candidates : Array[Candidate]) -> Array[Candidate] {
   })
   let accepted : Array[Candidate] = []
   let mut occupied_until = 0
+  let mut truncated = false
   for item in candidates {
     if item.start >= occupied_until {
-      accepted.push(item)
-      occupied_until = item.end
+      if accepted.length() < limit {
+        accepted.push(item)
+        occupied_until = item.end
+      } else {
+        truncated = true
+      }
     }
   }
-  accepted
+  (accepted, truncated)
 }
 
 ///|
@@ -523,39 +542,101 @@ fn redact(text : String, findings : Array[Finding]) -> String {
 }
 
 ///|
-/// Detect supported sensitive data using the selected replacement mode.
-pub fn scan_with_mode(text : String, requested_mode : String) -> ScanReport {
-  let mode = if requested_mode == "tokenize" { "tokenize" } else { "mask" }
+fn candidate_allowed(config : ScanConfig, item : Candidate) -> Bool {
+  category_enabled(config, item.category) &&
+  (item.risk != "low" || config.include_low_risk)
+}
+
+///|
+fn collect_segment_candidates(
+  text : String,
+  config : ScanConfig,
+) -> Array[Candidate] {
   let candidates : Array[Candidate] = []
   add_emails(text, candidates)
   add_digit_runs(text, candidates)
   add_ipv4(text, candidates)
   add_secrets(text, candidates)
-  let accepted = accepted_candidates(candidates)
-  let findings : Array[Finding] = []
-  let mut high = 0
-  let mut medium = 0
-  let mut low = 0
-  for item in accepted {
-    let original = text[item.start:item.end].to_owned()
-    let replacement = replacement_for(item, original, mode)
-    findings.push({
-      category: item.category,
-      label: item.label,
-      risk: item.risk,
-      start: item.start,
-      end: item.end,
-      original,
-      masked: replacement,
-      reason: item.reason,
-    })
-    match item.risk {
-      "high" => high = high + 1
-      "medium" => medium = medium + 1
-      _ => low = low + 1
+  add_landlines(text, candidates)
+  add_vehicle_plates(text, candidates)
+  add_mac_addresses(text, candidates)
+  add_jwt_tokens(text, candidates)
+  add_url_credentials(text, candidates)
+  add_private_keys(text, candidates)
+  add_custom_terms(text, config.custom_terms, candidates)
+  let filtered : Array[Candidate] = []
+  for item in candidates {
+    if candidate_allowed(config, item) {
+      filtered.push(item)
     }
   }
-  let verdict = if high > 0 {
+  filtered
+}
+
+///|
+fn offset_candidate(item : Candidate, offset : Int) -> Candidate {
+  {
+    category: item.category,
+    label: item.label,
+    risk: item.risk,
+    start: item.start + offset,
+    end: item.end + offset,
+    masked: item.masked,
+    reason: item.reason,
+    priority: item.priority,
+  }
+}
+
+///|
+fn collect_chunked_candidates(
+  text : String,
+  config : ScanConfig,
+) -> (Array[Candidate], Int) {
+  if text.is_empty() {
+    return ([], 0)
+  }
+  let output : Array[Candidate] = []
+  let overlap = 256
+  let mut logical_start = 0
+  let mut chunk_count = 0
+  while logical_start < text.length() {
+    let logical_end = Int::min(logical_start + config.chunk_size, text.length())
+    let scan_start = Int::max(0, logical_start - overlap)
+    let scan_end = Int::min(text.length(), logical_end + overlap)
+    let segment = text[scan_start:scan_end].to_owned()
+    let segment_candidates = collect_segment_candidates(segment, config)
+    for item in segment_candidates {
+      let absolute = offset_candidate(item, scan_start)
+      if absolute.start >= logical_start && absolute.start < logical_end {
+        output.push(absolute)
+      }
+    }
+    logical_start = logical_end
+    chunk_count = chunk_count + 1
+  }
+  (output, chunk_count)
+}
+
+///|
+fn category_summaries(findings : Array[Finding]) -> Array[CategorySummary] {
+  let summaries : Array[CategorySummary] = []
+  for rule in available_rules() {
+    let mut count = 0
+    for finding in findings {
+      if finding.category == rule.category {
+        count = count + 1
+      }
+    }
+    if count > 0 {
+      summaries.push({ category: rule.category, label: rule.label, count })
+    }
+  }
+  summaries
+}
+
+///|
+fn verdict_for(high : Int, medium : Int) -> Verdict {
+  if high > 0 {
     {
       level: "block",
       label: "建议阻止外发",
@@ -577,15 +658,64 @@ pub fn scan_with_mode(text : String, requested_mode : String) -> ScanReport {
       can_export: true,
     }
   }
+}
+
+///|
+/// Detect sensitive data using a reusable configuration object.
+pub fn scan_with_config(
+  text : String,
+  requested_config : ScanConfig,
+) -> ScanReport {
+  let config = normalize_config(requested_config)
+  let (candidates, chunk_count) = collect_chunked_candidates(text, config)
+  let (accepted, truncated) = accepted_candidates(
+    candidates,
+    config.max_findings,
+  )
+  let findings : Array[Finding] = []
+  let mut high = 0
+  let mut medium = 0
+  let mut low = 0
+  for item in accepted {
+    let original = text[item.start:item.end].to_owned()
+    let replacement = replacement_for(item, original, config)
+    findings.push({
+      category: item.category,
+      label: item.label,
+      risk: item.risk,
+      start: item.start,
+      end: item.end,
+      original,
+      masked: replacement,
+      reason: item.reason,
+    })
+    match item.risk {
+      "high" => high = high + 1
+      "medium" => medium = medium + 1
+      _ => low = low + 1
+    }
+  }
   {
     version: engine_version(),
-    mode,
+    mode: config.mode,
     input_length: text.length(),
     findings,
     summary: { total: findings.length(), high, medium, low },
-    verdict,
+    categories: category_summaries(findings),
+    verdict: verdict_for(high, medium),
+    chunk_count,
+    truncated,
     masked_text: redact(text, findings),
   }
+}
+
+///|
+/// Detect supported sensitive data using the selected replacement mode.
+pub fn scan_with_mode(text : String, requested_mode : String) -> ScanReport {
+  scan_with_config(
+    text,
+    config_from_strings(requested_mode, "", "", "", true, 10000, 65536),
+  )
 }
 
 ///|

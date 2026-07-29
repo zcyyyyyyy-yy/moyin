@@ -8,8 +8,13 @@ options(
       "exports": [
         "scan_json",
         "scan_tokenized_json",
+        "scan_configured_json",
+        "scan_tokenized_with_salt_json",
         "mask_text",
         "tokenize_text",
+        "tokenize_text_with_salt",
+        "available_rules_json",
+        "compare_privacy_json",
         "engine_version",
       ],
       "format": "esm",

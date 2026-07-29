@@ -11,15 +11,15 @@
 
 name = "moyin/privacy_guard"
 
-version = "0.2.0"
+version = "0.3.0"
 
 readme = "README.md"
 
-repository = ""
+repository = "https://github.com/zcyyyyyyy-yy/moyin"
 
 license = "Apache-2.0"
 
-keywords = [ "privacy", "redaction", "security", "wasm" ]
+keywords = [ "privacy", "redaction", "security", "pseudonymization", "devtool" ]
 
 preferred_target = "js"
 
