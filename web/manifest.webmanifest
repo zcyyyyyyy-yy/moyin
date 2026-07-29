@@ -1,0 +1,10 @@
+{
+  "name": "墨隐 Moyin",
+  "short_name": "墨隐",
+  "description": "离线敏感信息检测与脱敏工具",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0b1020",
+  "theme_color": "#111936",
+  "lang": "zh-CN"
+}

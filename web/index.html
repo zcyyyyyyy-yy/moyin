@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="墨隐是一款由 MoonBit 驱动、完全在浏览器本地运行的敏感信息检测与脱敏工具。"
+    />
+    <meta name="theme-color" content="#111936" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="stylesheet" href="./styles.css" />
+    <title>墨隐 Moyin — 离线敏感信息检测</title>
+  </head>
+  <body>
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+
+    <header class="site-header">
+      <a class="brand" href="#" aria-label="墨隐首页">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 48 48" role="img">
+            <path d="M24 4 40 10v11c0 10-6.7 18.2-16 23C14.7 39.2 8 31 8 21V10l16-6Z" />
+            <path d="M15 24c4.6-7 13.4-7 18 0-4.6 7-13.4 7-18 0Z" />
+            <circle cx="24" cy="24" r="3.5" />
+          </svg>
+        </span>
+        <span>
+          <strong>墨隐</strong>
+          <small>MOYIN</small>
+        </span>
+      </a>
+      <div class="header-meta">
+        <span class="privacy-badge"><i></i> 数据不离开浏览器</span>
+        <a class="text-link" href="#about">工作原理</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="eyebrow">MOONBIT-POWERED PRIVACY TOOL</div>
+        <h1>发送之前，先让敏感信息<br /><span>消失得恰到好处。</span></h1>
+        <p>
+          检测日志、配置和表格中的手机号、身份证、邮箱、银行卡、IP 与访问密钥。
+          所有计算都在你的设备上完成。
+        </p>
+        <div class="hero-chips" aria-label="支持类型">
+          <span>手机号</span><span>身份证</span><span>邮箱</span><span>银行卡</span
+          ><span>访问密钥</span><span>IPv4</span>
+        </div>
+      </section>
+
+      <section class="workspace" aria-labelledby="workspace-title">
+        <div class="workspace-head">
+          <div>
+            <span class="step-label">01 / 输入</span>
+            <h2 id="workspace-title">粘贴文本或导入文件</h2>
+          </div>
+          <div class="workspace-actions">
+            <button class="button ghost" id="sampleButton" type="button">填入示例</button>
+            <button class="button ghost" id="clearButton" type="button">清空</button>
+          </div>
+        </div>
+
+        <div class="mode-picker" aria-label="替换方式">
+          <button class="mode-option is-active" data-mode="mask" type="button">
+            <span class="mode-radio"></span>
+            <span>
+              <strong>星号脱敏</strong>
+              <small>适合直接阅读，保留部分格式特征</small>
+            </span>
+          </button>
+          <button class="mode-option" data-mode="tokenize" type="button">
+            <span class="mode-radio"></span>
+            <span>
+              <strong>一致化替换</strong>
+              <small>相同原文生成相同匿名标识，适合分析与测试</small>
+            </span>
+          </button>
+        </div>
+
+        <div class="drop-zone" id="dropZone">
+          <div class="editor-toolbar">
+            <div class="file-state">
+              <span class="status-dot"></span>
+              <span id="fileName">等待输入</span>
+            </div>
+            <label class="file-button">
+              <input
+                id="fileInput"
+                type="file"
+                accept=".txt,.log,.json,.csv,.md,.env,.yaml,.yml"
+              />
+              导入文件
+            </label>
+          </div>
+          <textarea
+            id="sourceInput"
+            spellcheck="false"
+            aria-label="待检测文本"
+            placeholder="把日志、JSON、CSV 或普通文本粘贴到这里…"
+          ></textarea>
+          <div class="editor-footer">
+            <span>可拖拽 TXT / LOG / JSON / CSV，最大 5 MB</span>
+            <span id="charCount">0 字符</span>
+          </div>
+        </div>
+
+        <button class="button primary" id="scanButton" type="button">
+          <span>开始本地检测</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m9 18 6-6-6-6" />
+          </svg>
+        </button>
+      </section>
+
+      <section class="results is-hidden" id="resultsSection" aria-live="polite">
+        <div class="section-heading">
+          <div>
+            <span class="step-label">02 / 结果</span>
+            <h2>风险概览</h2>
+          </div>
+          <span class="scan-time" id="scanTime">本地完成</span>
+        </div>
+
+        <div class="verdict-banner block" id="verdictBanner">
+          <div class="verdict-icon" id="verdictIcon">!</div>
+          <div>
+            <span>外发建议</span>
+            <strong id="verdictLabel">建议阻止外发</strong>
+            <p id="verdictMessage"></p>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <article class="stat-card total">
+            <span>发现总数</span><strong id="totalCount">0</strong><small>处敏感信息</small>
+          </article>
+          <article class="stat-card high">
+            <span>高风险</span><strong id="highCount">0</strong><small>建议立即处理</small>
+          </article>
+          <article class="stat-card medium">
+            <span>中风险</span><strong id="mediumCount">0</strong><small>可能关联身份</small>
+          </article>
+          <article class="stat-card low">
+            <span>低风险</span><strong id="lowCount">0</strong><small>环境与网络信息</small>
+          </article>
+        </div>
+
+        <div class="result-panel">
+          <div class="tabs" role="tablist">
+            <button class="tab is-active" data-tab="findings" role="tab">检测明细</button>
+            <button class="tab" data-tab="masked" role="tab">脱敏结果</button>
+          </div>
+          <div class="tab-content" id="findingsTab" role="tabpanel">
+            <div class="findings-list" id="findingsList"></div>
+            <div class="empty-state is-hidden" id="emptyState">
+              <div class="empty-icon">✓</div>
+              <h3>没有发现已知敏感信息</h3>
+              <p>当前文本通过了内置规则检查。</p>
+            </div>
+          </div>
+          <div class="tab-content is-hidden" id="maskedTab" role="tabpanel">
+            <div class="output-toolbar">
+              <span id="outputDescription">已按确定性规则替换，可直接复核</span>
+              <div>
+                <button class="button ghost compact" id="copyButton" type="button">复制</button>
+                <button class="button ghost compact" id="downloadMaskButton" type="button">
+                  下载文本
+                </button>
+              </div>
+            </div>
+            <pre id="maskedOutput"></pre>
+          </div>
+          <div class="panel-footer">
+            <span>引擎版本 <b id="engineVersion">—</b></span>
+            <button class="button secondary" id="downloadReportButton" type="button">
+              下载 JSON 报告
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="about" id="about">
+        <div>
+          <span class="step-label">隐私设计</span>
+          <h2>你的数据，只在你的设备里。</h2>
+        </div>
+        <div class="about-grid">
+          <article>
+            <span>01</span>
+            <h3>离线计算</h3>
+            <p>MoonBit 引擎被编译成浏览器可执行模块，不向服务器发送原文。</p>
+          </article>
+          <article>
+            <span>02</span>
+            <h3>有效性校验</h3>
+            <p>身份证校验位和银行卡 Luhn 校验可显著减少普通数字误报。</p>
+          </article>
+          <article>
+            <span>03</span>
+            <h3>可复核输出</h3>
+            <p>每条结果包含位置、风险等级、命中原因及替换后的预览。</p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>墨隐 Moyin · Built with MoonBit</span>
+      <span>本工具用于辅助检查，重要数据请结合人工复核。</span>
+    </footer>
+
+    <div class="toast" id="toast" role="status"></div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

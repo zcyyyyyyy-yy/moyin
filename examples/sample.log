@@ -1,0 +1,9 @@
+2026-07-29 20:18:06 INFO export customer profile
+name=林小姐
+phone=13812345678
+email=alice@example.com
+cn_id=11010519491231002X
+test_card=4532015112830366
+remote_addr=192.168.1.9
+API_KEY=sk-DEMO0000000000000000
+2026-07-29 20:18:07 WARN review before sending to external vendor

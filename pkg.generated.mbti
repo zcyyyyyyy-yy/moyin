@@ -1,0 +1,64 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moyin/privacy_guard"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn engine_version() -> String
+
+pub fn mask_text(String) -> String
+
+pub fn scan(String) -> ScanReport
+
+pub fn scan_json(String) -> String
+
+pub fn scan_tokenized_json(String) -> String
+
+pub fn scan_with_mode(String, String) -> ScanReport
+
+pub fn tokenize_text(String) -> String
+
+// Errors
+
+// Types and methods
+pub struct Finding {
+  category : String
+  label : String
+  risk : String
+  start : Int
+  end : Int
+  original : String
+  masked : String
+  reason : String
+} derive(Eq, ToJson, @debug.Debug)
+
+pub struct ScanReport {
+  version : String
+  mode : String
+  input_length : Int
+  findings : Array[Finding]
+  summary : Summary
+  verdict : Verdict
+  masked_text : String
+} derive(Eq, ToJson, @debug.Debug)
+
+pub struct Summary {
+  total : Int
+  high : Int
+  medium : Int
+  low : Int
+} derive(Eq, ToJson, @debug.Debug)
+
+pub struct Verdict {
+  level : String
+  label : String
+  message : String
+  can_export : Bool
+} derive(Eq, ToJson, @debug.Debug)
+
+// Type aliases
+
+// Traits
+*** End of File

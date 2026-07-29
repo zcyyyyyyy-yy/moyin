@@ -1,0 +1,5 @@
+import {
+  "moyin/privacy_guard" @lib,
+}
+
+pkgtype(kind: "executable")

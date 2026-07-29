@@ -1,0 +1,18 @@
+import {
+  "moonbitlang/core/json",
+}
+
+options(
+  link: {
+    "js": {
+      "exports": [
+        "scan_json",
+        "scan_tokenized_json",
+        "mask_text",
+        "tokenize_text",
+        "engine_version",
+      ],
+      "format": "esm",
+    },
+  },
+)
