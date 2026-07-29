@@ -1,203 +1,162 @@
 # 墨隐 Moyin
 
-墨隐是一款使用 MoonBit 编写核心引擎的离线敏感信息检测与脱敏工具。它可以在发送日志、配置、JSON、CSV 或普通文本之前，定位潜在隐私与访问凭据，并生成可复核的脱敏结果。
+[![CI](https://github.com/zcyyyyyyy-yy/moyin/actions/workflows/ci.yml/badge.svg)](https://github.com/zcyyyyyyy-yy/moyin/actions/workflows/ci.yml)
+[![MoonBit](https://img.shields.io/badge/core-MoonBit-3b82f6)](https://www.moonbitlang.com/)
+[![License](https://img.shields.io/badge/license-Apache--2.0-9dffca)](LICENSE)
 
-所有扫描均在本机完成，浏览器端不会上传原文。
+墨隐解决“日志、配置或测试数据发给外部之前，如何快速发现并移除隐私与访问凭据”的问题。核心引擎使用 MoonBit 编写，可在浏览器和命令行中完全离线运行；输入原文不会上传到服务器。
 
-## 功能
+它不仅生成脱敏副本，还能把上一次扫描作为隐私基线，在 CI 或发布前识别新增、增加、减少和已经消失的风险。基线报告只保存带盐匿名指纹，不保存手机号、邮箱、密钥等原文。
 
-- 检测中国大陆手机号
-- 验证并检测中国居民身份证号
-- 检测电子邮箱
-- 通过 Luhn 校验识别银行卡号
-- 检测 IPv4 地址
-- 检测 `sk-`、`AKIA` 前缀及常见键值形式的访问凭据
-- 自动解决重叠结果并生成 UTF-16 位置
-- 支持星号脱敏和确定性匿名标识两种替换模式
-- 根据最高风险给出外发判定
-- 网页拖拽导入、风险统计、复制及下载
-- Node.js CLI 批量处理整个目录并保留目录结构
-- 输出稳定的 JSON 报告结构
+## 主要能力
 
-## 技术结构
+| 能力 | 说明 |
+| --- | --- |
+| 13 类规则 | 手机号、座机、邮箱、身份证、银行卡、车牌、IPv4、MAC、JWT、API 密钥、URL 凭据、私钥、自定义词 |
+| 有效性校验 | 身份证校验位、银行卡 Luhn、IPv4 分段范围与格式边界 |
+| 两种替换方式 | 可读的星号脱敏；保留关联关系的带盐一致化匿名标识 |
+| 配置化扫描 | 分类开关、低风险过滤、自定义词、结果上限和大文本分块 |
+| 隐私基线门禁 | 对比基线与候选文件，新增高风险数据时可让 CI 以状态码 2 失败 |
+| 多种入口 | 离线网页、单文件 CLI、标准输入和保留目录结构的批处理 |
+| 可解释报告 | 每项结果包含分类、风险、位置、命中原因和替换预览 |
 
-```text
-engine.mbt / moyin.mbt
-        │
-        ├─ MoonBit 单元测试
-        │
-        └─ JavaScript 后端编译产物
-                 │
-                 ├─ web/ 离线浏览器界面
-                 └─ cli/ 命令行工具
-```
+## 快速体验
 
-网页与 CLI 调用相同的 MoonBit `scan_json` 和 `mask_text` 接口，不维护两套检测规则。
+需要 [MoonBit 工具链](https://www.moonbitlang.com/download/)和 Node.js 18+。
 
-## 环境要求
-
-- MoonBit 工具链
-- Node.js 18 或更高版本
-
-Windows 安装 MoonBit：
-
-```powershell
-Invoke-RestMethod -Uri 'https://cli.moonbitlang.com/install/powershell.ps1' | Invoke-Expression
-```
-
-## 快速启动
-
-```powershell
-cd D:\cursor_project\moyin
+```bash
+git clone https://github.com/zcyyyyyyy-yy/moyin.git
+cd moyin
 npm run build
 npm run dev
 ```
 
-浏览器打开：
+浏览器打开 `http://127.0.0.1:4173`，点击“填入示例”即可体验。页面中的规则选择、自定义敏感词和匿名化盐值都在本机处理。
 
-```text
-http://127.0.0.1:4173
-```
+## 命令行
 
-页面中可以点击“填入示例”，然后点击“开始本地检测”体验完整流程。
+输出完整 JSON 风险报告：
 
-## 命令行使用
-
-扫描示例日志并输出 JSON：
-
-```powershell
+```bash
 npm run scan -- examples/sample.log
 ```
 
-仅输出脱敏后的文本：
+生成可阅读的脱敏副本：
 
-```powershell
+```bash
 node cli/moyin.mjs examples/sample.log --mask
 ```
 
-使用一致化匿名标识：
+用项目盐值生成可关联但不可直接识别的匿名标识：
 
-```powershell
-node cli/moyin.mjs examples/sample.log --tokenize
+```bash
+node cli/moyin.mjs examples/sample.log --tokenize --salt team-2026-private
 ```
 
-同一个敏感值每次都会生成相同标识，例如同一个手机号的多次出现均替换为 `[PHONE_149353]`。这样可以继续分析记录之间的关联，又不暴露原始值。
+只检查指定规则，并加入项目自定义词：
 
-写入指定文件：
-
-```powershell
-node cli/moyin.mjs examples/sample.log --mask --out examples/sample.masked.log
+```bash
+node cli/moyin.mjs examples/sample.log \
+  --categories phone,email,secret,custom \
+  --custom-term ORCHID \
+  --no-low-risk
 ```
 
-从标准输入读取：
+批量生成安全副本目录：
 
-```powershell
-Get-Content examples/sample.log -Raw | node cli/moyin.mjs - --mask
+```bash
+node cli/moyin.mjs ./logs --tokenize --salt release-42
 ```
 
-批量处理目录：
+默认创建相邻的 `logs-safe-tokenize`，保留子目录结构，并生成不含敏感原文的 `_moyin-report.json`。已存在的输出目录不会被覆盖，明确需要继续时添加 `--force`。
 
-```powershell
-node cli/moyin.mjs D:\logs --tokenize
+查看全部选项：
+
+```bash
+node cli/moyin.mjs --help
 ```
 
-默认生成相邻的 `D:\logs-safe-tokenize` 目录，保留原来的子目录结构，并额外写入 `_moyin-report.json`。汇总报告只记录每个文件的风险数量与外发判定，不记录检测到的敏感原文。
+## 隐私基线与 CI 门禁
 
-指定批处理输出目录：
+先准备一份已经人工确认的基线文件，再与候选文件比较：
 
-```powershell
-node cli/moyin.mjs D:\logs --mask --out D:\logs-for-vendor
+```bash
+node cli/moyin.mjs candidate.log \
+  --baseline baseline.log \
+  --salt repository-private-scope \
+  --fail-on-drift \
+  --out privacy-drift.json
 ```
 
-为防止意外覆盖，输出目录已经存在时命令会停止。确认需要继续写入时可以添加 `--force`。
+默认策略：
+
+- 新增高风险信息时阻止；
+- 新增中风险值超过 3 个时阻止；
+- 总风险分增加超过 20 时阻止；
+- 未通过时仍输出完整漂移报告，并以状态码 `2` 退出。
+
+漂移报告中的 `anonymous_id` 用于识别“是否为同一敏感值”，但不会写入原文。盐值应由 CI Secret 提供，不要提交到仓库。
+
+## 架构
+
+```text
+MoonBit rule registry
+        │
+        ├── validators + overlap resolver
+        ├── configurable chunk scanner
+        ├── masking / salted pseudonymization
+        └── privacy inventory + drift policy
+                         │
+                JavaScript ESM output
+                         │
+                  ┌──────┴──────┐
+              Offline Web      Node CLI
+```
+
+网页与 CLI 使用同一份 MoonBit 编译产物，不维护两套检测逻辑。详细设计见 [架构说明](docs/ARCHITECTURE.md)。
 
 ## 开发与验证
 
-运行 MoonBit 测试：
+运行完整验证：
 
-```powershell
-npm test
+```bash
+npm run test:all
 ```
 
-运行真实 Edge/Chromium 浏览器冒烟测试：
+也可以分别运行：
 
-```powershell
-npm run test:web
-```
-
-按项目约定更新接口并格式化：
-
-```powershell
+```bash
+moon fmt --check
 moon info
-moon fmt
 moon check --target js
+moon test --target js
+moon bench --target js
+moon coverage analyze -- -f summary
+npm run test:cli
+npm run test:web
+moon package --list
 ```
 
-## 报告示例
+当前包含 49 项 MoonBit 单元测试、CLI 集成测试、真实 Edge/Chromium 浏览器冒烟测试和两组性能基准。GitHub Actions 会在 push 与 pull request 时执行格式、接口、单测、构建、CLI、浏览器和打包检查。
 
-```json
-{
-  "version": "0.2.0",
-  "mode": "mask",
-  "input_length": 11,
-  "findings": [
-    {
-      "category": "phone",
-      "label": "手机号码",
-      "risk": "high",
-      "start": 0,
-      "end": 11,
-      "original": "13812345678",
-      "masked": "138****5678",
-      "reason": "中国大陆手机号码可直接联系并关联个人"
-    }
-  ],
-  "summary": {
-    "total": 1,
-    "high": 1,
-    "medium": 0,
-    "low": 0
-  },
-  "verdict": {
-    "level": "block",
-    "label": "建议阻止外发",
-    "message": "发现高风险身份信息或访问凭据，请完成替换并人工复核后再发送。",
-    "can_export": false
-  },
-  "masked_text": "138****5678"
-}
-```
+## 检测原则与限制
 
-## 检测原则
+- 更精确、风险更高的规则优先，重叠区间不会被重复替换。
+- 大文本按逻辑分块扫描，并保留重叠窗口以覆盖跨边界信息。
+- 浏览器报告位置使用 UTF-16 代码单元，与 JavaScript 字符串切片一致。
+- 一致化替换用于降低直接识别风险，不等同于不可逆密码学匿名化。
+- 规则引擎无法覆盖所有私有密钥格式、自然语言上下文或经过编码的数据。
 
-墨隐不仅按字符串形状匹配：
+墨隐是外发前检查与开发门禁工具，不是数据合规结论。重要数据仍应由负责人复核。安全模型与报告方式见 [安全说明](docs/SECURITY.md)。
 
-- 身份证号会验证第 18 位校验码。
-- 银行卡号会执行 Luhn 校验。
-- 不同规则命中同一段文本时，优先保留更精确、风险更高的结果。
-- 一致化替换采用稳定摘要编号，相同原文在不同文件中也得到相同匿名标识。
-- 高风险结果会触发“建议阻止外发”，中风险触发“需要人工复核”。
-- 浏览器位置使用 UTF-16 代码单元，与 JavaScript 字符串切片一致。
+## 项目资料
 
-这些策略能降低误报，但无法保证识别全部秘密格式。正式对外发送重要数据前，仍应进行人工复核。
-
-## 目录
-
-```text
-moyin/
-├─ engine.mbt              # 检测、校验、去重与脱敏
-├─ moyin.mbt               # 公共 JSON/文本接口
-├─ moyin_test.mbt          # 黑盒测试
-├─ moyin_wbtest.mbt        # 白盒测试
-├─ web/                    # 浏览器界面
-├─ cli/                    # Node CLI
-├─ scripts/                # 构建、服务和浏览器测试
-├─ examples/               # 安全的虚构示例数据
-├─ moon.mod
-├─ moon.pkg
-└─ package.json
-```
+- [架构与数据流](docs/ARCHITECTURE.md)
+- [安全模型](docs/SECURITY.md)
+- [OSC 2026 参赛准备](docs/OSC2026.md)
+- [贡献指南](CONTRIBUTING.md)
+- [版本记录](CHANGELOG.md)
 
 ## 许可证
 
-Apache-2.0
+[Apache License 2.0](LICENSE)

@@ -6,23 +6,82 @@ import {
 }
 
 // Values
+pub fn available_rules() -> Array[RuleInfo]
+
+pub fn available_rules_json() -> String
+
+pub fn build_privacy_inventory(ScanReport, String) -> PrivacyInventory
+
+pub fn compare_privacy_json(String, String, String) -> String
+
+pub fn compare_privacy_reports(ScanReport, ScanReport, String, DriftPolicy) -> PrivacyDriftReport
+
+pub fn compare_privacy_texts(String, String, String) -> PrivacyDriftReport
+
+pub fn config_from_strings(String, String, String, String, Bool, Int, Int) -> ScanConfig
+
+pub fn default_config() -> ScanConfig
+
+pub fn default_drift_policy() -> DriftPolicy
+
+pub fn drift_policy(Bool, Int, Int, Array[String]) -> DriftPolicy
+
 pub fn engine_version() -> String
 
 pub fn mask_text(String) -> String
 
 pub fn scan(String) -> ScanReport
 
+pub fn scan_configured_json(String, String, String, String, String, Bool, Int, Int) -> String
+
 pub fn scan_json(String) -> String
 
 pub fn scan_tokenized_json(String) -> String
+
+pub fn scan_tokenized_with_salt_json(String, String) -> String
+
+pub fn scan_with_config(String, ScanConfig) -> ScanReport
 
 pub fn scan_with_mode(String, String) -> ScanReport
 
 pub fn tokenize_text(String) -> String
 
+pub fn tokenize_text_with_salt(String, String) -> String
+
 // Errors
 
 // Types and methods
+pub struct CategorySummary {
+  category : String
+  label : String
+  count : Int
+} derive(Eq, ToJson, @debug.Debug)
+
+pub struct DriftDecision {
+  level : String
+  label : String
+  allowed : Bool
+  reasons : Array[String]
+} derive(Eq, ToJson, @debug.Debug)
+
+pub struct DriftItem {
+  change : String
+  category : String
+  label : String
+  risk : String
+  anonymous_id : String
+  before_count : Int
+  after_count : Int
+  delta : Int
+} derive(Eq, ToJson, @debug.Debug)
+
+pub struct DriftPolicy {
+  block_new_high : Bool
+  max_new_medium : Int
+  max_score_increase : Int
+  ignored_categories : Array[String]
+} derive(Eq, ToJson, @debug.Debug)
+
 pub struct Finding {
   category : String
   label : String
@@ -34,13 +93,65 @@ pub struct Finding {
   reason : String
 } derive(Eq, ToJson, @debug.Debug)
 
+pub struct PrivacyDriftReport {
+  version : String
+  baseline : PrivacyInventory
+  candidate : PrivacyInventory
+  new_values : Int
+  resolved_values : Int
+  persistent_values : Int
+  added_occurrences : Int
+  removed_occurrences : Int
+  score_delta : Int
+  changes : Array[DriftItem]
+  decision : DriftDecision
+} derive(Eq, ToJson, @debug.Debug)
+
+pub struct PrivacyFingerprint {
+  category : String
+  label : String
+  risk : String
+  anonymous_id : String
+  occurrences : Int
+} derive(Eq, ToJson, @debug.Debug)
+
+pub struct PrivacyInventory {
+  input_length : Int
+  finding_total : Int
+  unique_total : Int
+  risk_score : Int
+  fingerprints : Array[PrivacyFingerprint]
+  categories : Array[CategorySummary]
+} derive(Eq, ToJson, @debug.Debug)
+
+pub struct RuleInfo {
+  category : String
+  label : String
+  risk : String
+  description : String
+  enabled_by_default : Bool
+} derive(Eq, ToJson, @debug.Debug)
+
+pub struct ScanConfig {
+  mode : String
+  salt : String
+  enabled_categories : Array[String]
+  custom_terms : Array[String]
+  include_low_risk : Bool
+  max_findings : Int
+  chunk_size : Int
+} derive(Eq, ToJson, @debug.Debug)
+
 pub struct ScanReport {
   version : String
   mode : String
   input_length : Int
   findings : Array[Finding]
   summary : Summary
+  categories : Array[CategorySummary]
   verdict : Verdict
+  chunk_count : Int
+  truncated : Bool
   masked_text : String
 } derive(Eq, ToJson, @debug.Debug)
 
@@ -61,4 +172,3 @@ pub struct Verdict {
 // Type aliases
 
 // Traits
-*** End of File

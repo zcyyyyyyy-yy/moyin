@@ -45,6 +45,9 @@ jobs:
       - name: Run MoonBit tests
         run: moon test --target js
 
+      - name: Report MoonBit coverage
+        run: moon coverage analyze -- -f summary
+
       - name: Build release web application
         run: npm run build
 
