@@ -21,28 +21,45 @@ if (!browser) {
 
 const server = spawn(process.execPath, ["scripts/serve.mjs"], {
   cwd: root,
-  stdio: "ignore",
+  stdio: ["ignore", "pipe", "pipe"],
+});
+let serverLog = "";
+server.stdout.on("data", (chunk) => {
+  serverLog += chunk;
+});
+server.stderr.on("data", (chunk) => {
+  serverLog += chunk;
 });
 const profileDir = join(root, "_build", "browser-smoke-profile");
 const debugPort = 9333;
 const edge = spawn(
   browser,
   [
-    "--headless",
+    "--headless=new",
     "--disable-gpu",
+    "--disable-dev-shm-usage",
+    "--no-sandbox",
     "--no-first-run",
     "--hide-scrollbars",
+    "--remote-allow-origins=*",
     `--remote-debugging-port=${debugPort}`,
     `--user-data-dir=${profileDir}`,
     "about:blank",
   ],
-  { stdio: "ignore" },
+  { stdio: ["ignore", "pipe", "pipe"] },
 );
+let browserLog = "";
+edge.stdout.on("data", (chunk) => {
+  browserLog += chunk;
+});
+edge.stderr.on("data", (chunk) => {
+  browserLog += chunk;
+});
 
 const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 async function waitForJson(url) {
-  for (let attempt = 0; attempt < 40; attempt += 1) {
+  for (let attempt = 0; attempt < 80; attempt += 1) {
     try {
       const response = await fetch(url);
       if (response.ok) return await response.json();
@@ -55,7 +72,7 @@ async function waitForJson(url) {
 }
 
 async function waitForHttp(url) {
-  for (let attempt = 0; attempt < 40; attempt += 1) {
+  for (let attempt = 0; attempt < 80; attempt += 1) {
     try {
       const response = await fetch(url);
       if (response.ok) return;
@@ -158,6 +175,11 @@ try {
   }
   console.log(`浏览器冒烟测试通过：${JSON.stringify(value)}`);
   client.close();
+} catch (error) {
+  console.error(error);
+  if (serverLog.trim()) console.error(`本地服务日志：\n${serverLog.trim()}`);
+  if (browserLog.trim()) console.error(`浏览器日志：\n${browserLog.trim()}`);
+  process.exitCode = 1;
 } finally {
   edge.kill();
   server.kill();
